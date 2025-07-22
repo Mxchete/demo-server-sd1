@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ESP32 Demo - Receive and Send data</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 700px; margin: 2em auto; }
+    textarea { width: 100%; height: 120px; font-family: monospace; font-size: 14px; }
+    button { margin-top: 10px; padding: 10px 20px; font-size: 16px; }
+    .status { margin-top: 10px; font-weight: bold; }
+    pre { background: #f4f4f4; padding: 10px; white-space: pre-wrap; }
+    #latestData { border: 1px solid #ccc; padding: 15px; background: #fafafa; margin-bottom: 20px; }
+    h2 { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <h1>ESP32 Sensor Data & Control</h1>
+
+  <section id="latestDataSection">
+    <h2>Latest Sensor Data Received</h2>
+    <div id="latestData">Loading...</div>
+  </section>
+
+  <section id="sendDataSection">
+    <h2>Send Data to ESP32</h2>
+    <label for="jsonInput">JSON Payload:</label><br />
+    <textarea id="jsonInput">{"temperature":25,"humidity":60,"deviceID":1}</textarea><br />
+    <button id="sendBtn">Send to ESP32</button>
+
+    <div class="status" id="status"></div>
+    <pre id="response"></pre>
+  </section>
+
+  <script>
+    const latestDataDiv = document.getElementById('latestData');
+    const sendBtn = document.getElementById('sendBtn');
+    const jsonInput = document.getElementById('jsonInput');
+    const statusDiv = document.getElementById('status');
+    const responsePre = document.getElementById('response');
+
+    async function fetchLatestData() {
+      try {
+        const res = await fetch('/latest-data');
+        if (!res.ok) throw new Error('Failed to fetch latest data');
+        const data = await res.json();
+
+        if (!data || Object.keys(data).length === 0) {
+          latestDataDiv.textContent = 'No data received yet.';
+          return;
+        }
+
+        latestDataDiv.innerHTML = Object.entries(data)
+          .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+          .join('<br>');
+      } catch (err) {
+        latestDataDiv.textContent = 'Error loading data.';
+        console.error(err);
+      }
+    }
+
+    fetchLatestData();
+
+    setInterval(fetchLatestData, 10000);
+
+    sendBtn.addEventListener('click', () => {
+      let payload;
+      try {
+        payload = JSON.parse(jsonInput.value);
+      } catch (e) {
+        statusDiv.textContent = 'Invalid JSON!';
+        responsePre.textContent = '';
+        return;
+      }
+
+      statusDiv.textContent = 'Sending...';
+      responsePre.textContent = '';
+
+      fetch('/send-to-esp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      .then(async res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        statusDiv.textContent = 'Data sent successfully!';
+        responsePre.textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        statusDiv.textContent = err.message;
+        responsePre.textContent = '';
+      });
+    });
+  </script>
+</body>
+</html>
+
