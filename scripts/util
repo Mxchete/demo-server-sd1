@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+update_ip() {
+  ESP_IP=$1
+  SERVER_IP=$2
+  curl -X POST "http://${ESP_IP}:80/set-server-ip" \
+    -H "Content-Type: application/json" \
+    -d "{\"server_ip\":\"${SERVER_IP}\"}"
+}
+
+run_server() {
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+  pushd ${PARENT_DIR}
+  ./scripts/start_container.sh npm npm
+}
+
+# Function dispatcher
+main() {
+  local cmd="$1"
+  shift
+
+  case "$cmd" in
+  update_ip)
+    update_ip "$@"
+    ;;
+  run_server)
+    run_server
+    ;;
+  *)
+    echo "Unknown command: $cmd"
+    echo "Usage: $0 {update_ip <ESP_IP> <SERVER_IP>}"
+    echo "       $0 run_server"
+    exit 1
+    ;;
+  esac
+}
+
+main "$@"
