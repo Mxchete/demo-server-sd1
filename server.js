@@ -18,17 +18,19 @@ app.post('/submit', (req, res) => {
   res.sendStatus(200);
 });
 
-// GET method for showing index.html
+// GET method for showing recieved data in browser
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
-
-// GET method for retrieving latest data from esp, displayed in index.html
-app.get('/latest-data', (req, res) => {
   if (!latest_data) {
-    return res.json({});
+    return res.send('<h1>No data received yet</h1>');
   }
-  res.json(latest_data);
+
+  let html = `<h1>Received Data</h1><ul>`;
+  for (const [key, value] of Object.entries(latest_data)) {
+    html += `<li><strong>${key}</strong>: ${value}</li>`;
+  }
+  html += `</ul>`;
+
+  res.send(html);
 });
 
 // POST method to send data to ESP32
